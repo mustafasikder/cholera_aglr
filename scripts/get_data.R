@@ -1,0 +1,162 @@
+setwd("X:/Spatial Stat/climate_cholera/")
+rm(list= ls())
+library(rnoaa)
+library(data.table)
+library(ggplot2)
+library(sf)
+library(raster)
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(zoo)
+
+theme_set(theme_minimal())
+theme_update(legend.position = "bottom")
+options(ggplot2.continuous.colour="viridis")
+options(ggplot2.continuous.fill = "viridis")
+par(mar=c(1,1,1,1))
+
+
+# read cholera data
+chl_dt<- fread("X:/Spatial Stat/climate_cholera/data/Africa_El_Nino_Cases_April 2015-present.csv")
+#getting cholera data
+
+chl_dt<- chl_dt[Disease=="CHL",]
+chl_dt$Start_Date<- as.Date(chl_dt$Start_Date, "%m/%d/%Y")
+chl_dt$End_Date<- as.Date(chl_dt$End_Date, "%m/%d/%Y")
+chl_dt$End_Date<- format(chl_dt$End_Date, "%Y-%m-%d")
+chl_dt$End_Date<- as.Date(chl_dt$End_Date)
+
+chl_dt$Confirmed_Cases<- as.numeric(chl_dt$Confirmed_Cases)
+
+chl_dt[Country=="Tanzania", .(Admin_Level_I, Admin_Level_II, Admin_Level_III, Start_Date, End_Date, Confirmed_Cases)]
+
+ggplot(data= chl_dt)+ geom_point(aes(x= End_Date, y=Confirmed_Cases))
+
+ggplot(data= chl_dt[Country=="Tanzania",])+ geom_point(aes(x= End_Date, y=Confirmed_Cases, color= Admin_Level_II))
+
+
+# read rainfall data as precipitation (mm)
+# https://cran.r-project.org/web/packages/rnoaa/rnoaa.pdf
+# read me of Africa Rainfall Climatology version2 (ARC2): https://ftp.cpc.ncep.noaa.gov/fews/fewsdata/africa/arc2/ARC2_readme.txt
+tz.box <- c(xmin = -7, ymin = 33.4, xmax = -6, ymax = 37.2)
+date.frame<- seq(as.Date("2016-01-01"), as.Date("2016-06-30"), "days")
+tz.rf<- arc2(date= "2017-06-14", box = tz.box, )
+# tz.rf.16.1<- arc2(date= date.frame, box = tz.box, )
+
+# tz.rf.16.1.df<- data.frame(lon= tz.rf.16.1[[1]]$lon, lat= tz.rf.16.1[[1]]$lat, sapply(tz.rf.16.1, function(x) x$precip))
+
+# temp.df<- data.frame(lon= tz.rf[[1]]$lon, lat= tz.rf[[1]]$lat)
+# date.frame<- seq(as.Date("2016-01-01"), as.Date("2016-01-31"), "days")
+# for (i in date.frame){
+#   i<- as.Date(i, origin = "1970-01-01")
+#   print(i)
+#   tz.temp<- arc2(date= i, box = tz.box)
+#   temp.df<- data.frame(temp.df, sapply(tz.temp, function(x) x$precip))
+#   colnames(temp.df)[ncol(temp.df)]<- paste0("d",substr(i, 9, 10))
+#   file.remove(paste0("C:/Users/sikde/AppData/Local/cache/R/noaa_arc2/",list.files("C:/Users/sikde/AppData/Local/cache/R/noaa_arc2/")))
+# }
+
+# for now only write if for each year
+get_arc2<- function(target_year){
+  for (m in 1:12){
+    
+    temp.df<- data.frame(lon= tz.rf[[1]]$lon, lat= tz.rf[[1]]$lat)
+    days.month<- days_in_month(m)
+    date.frame<- seq(as.Date(paste0(target_year, "-",m, "-", "01" )), as.Date(paste0(target_year, "-",m, "-",days.month)), "days")
+    
+    for (i in date.frame){
+      i<- as.Date(i, origin = "1970-01-01")
+      print(i)
+      tz.temp<- arc2(date= i, box = tz.box)
+      temp.df<- data.frame(temp.df, sapply(tz.temp, function(x) x$precip))
+      colnames(temp.df)[ncol(temp.df)]<- paste0("d",substr(i, 9, 10))
+      file.remove(paste0("C:/Users/sikde/AppData/Local/cache/R/noaa_arc2/",list.files("C:/Users/sikde/AppData/Local/cache/R/noaa_arc2/")))
+    }
+    temp.df$month<- as.integer(m)
+    temp.df$year<- as.integer(target_year)
+    assign(paste0("temp.df",m), temp.df)
+    print(paste("month:", m))
+  }
+  temp.df.full<- bind_rows(temp.df1, temp.df2, temp.df3, temp.df4, temp.df5, temp.df6, temp.df7, temp.df8, temp.df9, temp.df10, temp.df11, temp.df12)
+  as.daily.obj<- temp.df.full[,3:ncol(temp.df.full)]
+  as.daily.obj<- as.daily.obj[, c(33, 32, 1:31)]
+  return(as.daily.obj)
+  
+}
+
+arc2015<-get_arc2(2015)
+arc2016<-get_arc2(2016)
+arc2017<-get_arc2(2017)
+arc2018<-get_arc2(2018)
+arc2019<-get_arc2(2019)
+
+arc2015.2019<- bind_rows(arc2015, arc2016, arc2017, arc2018, arc2019)
+
+# monthly mean rainfall
+mon.mean.2015.2019<- data.frame(arc2015.2019[,1:2] , mon.mean=rowMeans(arc2015.2019[,3:33], na.rm = T))
+mon.mean.2015.2019$date<- rep(seq(as.Date("2015-01-01"), as.Date("2019-12-31"), "months"), times= 1, each= 429)
+mon.mean.2015.2019.dt<- data.table(mon.mean.2015.2019)
+
+# daily mean rainfall of the full area
+arc2015.2019_dt<- data.table(arc2015.2019)
+area.mean.2015.2019<- arc2015.2019_dt[,apply(.SD, 2, mean), .SDcols= patterns("d"), by= .(year, month) ]
+colnames(area.mean.2015.2019)[3]<- "area.mean"
+# remove NA caused by Feb 29, 30, 31 etc.
+area.mean.2015.2019<- area.mean.2015.2019[complete.cases(area.mean.2015.2019),]
+area.mean.2015.2019$date<- seq(as.Date("2015-01-01"), as.Date("2019-12-31"), "days")[c(1:424, 426:1826)]
+
+
+# rainfall anomaly index
+daily.obj<- as.daily(arc2015.2019, na.value = NA)
+rai.2015.2019<-rai(daily.obj)
+rai.2015.2019.dt<- data.table(rai.2015.2019)
+rai.2015.2019.dt[,mean(rai), by= .(year, month)]
+rai.2015.2019.dt$date<- rep(seq(as.Date("2015-01-01"), as.Date("2019-12-31"), "months"), times= 1, each= 429)
+
+ggplot(data = rai.2015.2019.dt[,mean(rai), by= .(year, month)])+geom_line(aes(x= month, y= V1, color= year))
+
+# can't take mean rai to match with cholera data because rai is monthly 
+#mean.rai<- rai.2015.2019.dt[,rai.m:=mean(rai, na.rm= T), by= date]
+#colnames(mean.rai)[2]<- "rai.m"
+
+chl_tz<- chl_dt[Country=="Tanzania",]
+merged.dt<- merge.data.table(area.mean.2015.2019, chl_tz, by.x = "date", by.y = "End_Date", all= TRUE )
+# note: more rows then area.mean.2015.2019 becaue in the chl_tz multiple locations were included for the same date e.g.  2018-12-31 had five location so 5 rows for the same date
+
+
+ggplot()+
+  geom_line(data = rai.2015.2019.dt[,mean(rai), by= date], aes(x= date, y= V1, color= year))+ 
+  geom_point(data= chl_dt[Country=="Tanzania",], aes(x= End_Date, y=log(Confirmed_Cases)))+
+  geom_line(data = mon.mean.2015.2019.dt[, mean(mon.mean), by= date], aes(x=date, y= V1, color= year),size= 2 )+ 
+  scale_x_date(date_minor_breaks = "1 month", date_breaks = "6 month", date_labels = "%Y-%b")+ 
+  theme(axis.text= element_text(angle = 90), 
+        legend.key.size = unit(3, "pt") )
+
+# plot with rainfall moving average and lag 
+rain_confirmed<- ggplot()+ 
+  geom_point(data= merged.dt, aes(x= date, y= log(Confirmed_Cases)), size= 1.2, color= "#c09369") +
+  geom_line(data= merged.dt, aes(x= date, y= lag(rollmean(area.mean, 7, na.pad = T), k= 5)), color= "turquoise")+ 
+  scale_x_date(date_minor_breaks = "1 month", date_breaks = "6 month", date_labels = "%Y-%b")+ 
+  scale_y_continuous(name= "log of confirmed cases", sec.axis = sec_axis(~ . * 1, name = "Rainfall (mm)"), minor_breaks = NULL)+ 
+  theme(axis.text= element_text(angle = 90))
+ggsave("X:/Spatial Stat/climate_cholera/rainfallVsconfirmed.jpeg", plot= rain_confirmed, width = 6, height = 2.5, units = "in", dpi= 500)
+
+
+
+# plot with rainfall anomaly 
+  ggplot()+ 
+    geom_point(data= merged.dt, aes(x= date, y= log(Confirmed_Cases),size= 1.1, color= "#c09369")) +
+    #geom_line(data= merged.dt, aes(x= date, y= lag(rollmean(area.mean, 7, na.pad = T), k= 5), color= year))+ 
+    geom_line(data = rai.2015.2019.dt[,mean(rai), by= date], aes(x= date, y= V1, color= year), size= 1.2, color= "turquoise")+ 
+    scale_x_date(date_minor_breaks = "1 month", date_breaks = "6 month", date_labels = "%Y-%b")+ 
+    scale_y_continuous(name= "log of confirmed cases", sec.axis = sec_axis(~ . * 1, name = "Rainfall anomalies (mm)")) +
+  theme(axis.text= element_text(angle = 90))
+  
+
+
+ggplot(tz.rf.16.1.df)+geom_point(aes(x= lon, y= lat, color= rowMeans(tz.rf.16.1.df[,names(tz.rf.16.1.df)[grep("X", names(tz.rf.16.1.df))]])))
+
+
+tz.raster<- rasterFromXYZ(tz.rf$`2017-06-14`[, c("lon", "lat", "precip")])
+
