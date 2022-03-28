@@ -1,4 +1,6 @@
 setwd("X:/Spatial Stat/climate_cholera/")
+#Countries to consider: 
+# 
 rm(list= ls())
 library(rnoaa)
 library(data.table)
@@ -17,9 +19,18 @@ options(ggplot2.continuous.fill = "viridis")
 par(mar=c(1,1,1,1))
 
 
+## Countries to consider
+country_vector<- c('Kenya', 'Uganda', 'Tanzania', 'South Sudan', 'Somalia', 
+                   'Ethiopia', 'Zambia', 'Malawi', 
+                   'Democratic Republic of the Congo')
+
+great_lakes<- c( 'Democratic Republic of the Congo', 'Ethiopia', 'Kenya', 'Malawi', 
+                 'Mozambique', 'Rwanda', 'Zambia', 'Tanzania', 'Uganda')
+
 # read cholera data
 chl_dt<- fread("X:/Spatial Stat/climate_cholera/data/Africa_El_Nino_Cases_April 2015-present.csv")
 #getting cholera data
+chl_dt[Disease=="CHL", .N , by= Country]
 
 chl_dt<- chl_dt[Disease=="CHL",]
 chl_dt$Start_Date<- as.Date(chl_dt$Start_Date, "%m/%d/%Y")
@@ -40,8 +51,11 @@ ggplot(data= chl_dt[Country=="Tanzania",])+ geom_point(aes(x= End_Date, y=Confir
 # https://cran.r-project.org/web/packages/rnoaa/rnoaa.pdf
 # read me of Africa Rainfall Climatology version2 (ARC2): https://ftp.cpc.ncep.noaa.gov/fews/fewsdata/africa/arc2/ARC2_readme.txt
 tz.box <- c(xmin = -7, ymin = 33.4, xmax = -6, ymax = 37.2)
+ea.box<- c(xmin = -55, ymin = -30, xmax = 0, ymax = 20)
 date.frame<- seq(as.Date("2016-01-01"), as.Date("2016-06-30"), "days")
+
 tz.rf<- arc2(date= "2017-06-14", box = tz.box, )
+ea.rf<- arc2(date= "2017-06-14", box = ea.box, )
 # tz.rf.16.1<- arc2(date= date.frame, box = tz.box, )
 
 # tz.rf.16.1.df<- data.frame(lon= tz.rf.16.1[[1]]$lon, lat= tz.rf.16.1[[1]]$lat, sapply(tz.rf.16.1, function(x) x$precip))
