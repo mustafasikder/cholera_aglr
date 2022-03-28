@@ -7,6 +7,7 @@ library(data.table)
 library(ggplot2)
 library(sf)
 library(raster)
+library(rgdal)
 library(dplyr)
 library(tidyr)
 library(lubridate)
@@ -51,11 +52,31 @@ ggplot(data= chl_dt[Country=="Tanzania",])+ geom_point(aes(x= End_Date, y=Confir
 # https://cran.r-project.org/web/packages/rnoaa/rnoaa.pdf
 # read me of Africa Rainfall Climatology version2 (ARC2): https://ftp.cpc.ncep.noaa.gov/fews/fewsdata/africa/arc2/ARC2_readme.txt
 tz.box <- c(xmin = -7, ymin = 33.4, xmax = -6, ymax = 37.2)
-ea.box<- c(xmin = -55, ymin = -30, xmax = 0, ymax = 20)
+ea.box<- c(xmin = 0, ymin = -30, xmax = 55, ymax = 20)
 date.frame<- seq(as.Date("2016-01-01"), as.Date("2016-06-30"), "days")
 
 tz.rf<- arc2(date= "2017-06-14", box = tz.box, )
-ea.rf<- arc2(date= "2017-06-14", box = ea.box, )
+ea.rf<- arc2(date= "2017-06-14", box = ea.box)
+ggplot(data= data.frame(ea.rf$`2017-06-14`), aes(x= lon, y= lat, color= precip))+geom_tile()
+
+ea.rf.2017.06.14<- rasterFromXYZ(ea.rf$`2017-06-14`[,2:4], crs = "+init=epsg:4269 +proj=longlat +ellps=GRS80 +datum=NAD83")
+plot(ea.rf.2017.06.14)
+# To check if the rainfall data includes all target countries
+
+taz.shp<- getData('GADM', country='TZA', level=0)
+plot(taz.shp, add= T)
+plot(getData('GADM', country='KEN', level=0), add= T)
+plot(getData('GADM', country='UGA', level=0), add= T)
+plot(getData('GADM', country='SSD', level=0), add= T)
+plot(getData('GADM', country='SOM', level=0), add= T)
+plot(getData('GADM', country='ETH', level=0), add= T)
+plot(getData('GADM', country='ZMB', level=0), add= T)
+plot(getData('GADM', country='MWI', level=0), add= T)
+plot(getData('GADM', country='COD', level=0), add= T)
+
+
+
+
 # tz.rf.16.1<- arc2(date= date.frame, box = tz.box, )
 
 # tz.rf.16.1.df<- data.frame(lon= tz.rf.16.1[[1]]$lon, lat= tz.rf.16.1[[1]]$lat, sapply(tz.rf.16.1, function(x) x$precip))
