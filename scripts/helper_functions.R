@@ -81,11 +81,63 @@ get_arc2<- function(target_year, area_box){
 #' function will get corresponding shapefiles 
 #' @param iso3_vector a vector of ISO3 country names
 #' @param admin_level expected admin level, default 0
-#' @example 
+#' @example get_gadm_shp(c('KEN', 'UGA', 'SSD', 'SOM', 'ETH', 'ZMB', 'MWI', 'COD', 'TZA'), 1)
+#' @note underlying getData function is from Raster package >>> library("raster")
+
 
 get_gadm_shp<- function(iso3_vector, admin_level= 0){
   shp_list<- lapply(iso3_vector, function(x) getData('GADM', country=x, level=admin_level))
   shp_combined<- do.call(rbind, shp_list)
   return(shp_combined)
 }
+
+
+###-------------------Convert cumulative rasters to dataframe ---------------###
+#' @title rasters_as_df
+#' @description given a vector of raster layer name this function will convert 
+#' those to dataframe and keep the layer name as column value
+#' @param rast_name
+#' @example 
+
+raster_as_df<- function(rast_name){
+  rast_df<- as.data.frame(rast_name, xy= T)
+  colnames(rast_df)<- c(paste0(rast_name), "x", "y")
+}
+
+
+### --------------- Fix cholera data admin level assignment -----------------###
+#' @title fix_admin_level
+#' @description  
+#' @param current_level = numeric c(0:4)
+#' @param new_level = numeric c(0:4)
+#' @param current_name = string
+#' @param new_name = string
+#' @param Adm0 = country name as string
+#' @param Adm1 = admin 1 name as string
+#' @param Adm2 = admin 2 name as string
+#' @param Adm3 = admin 3 name as string
+#' @param Adm4 = admin 4 name as string
+#' @example
+
+fix_admin_level<- function(current_level, 
+                           new_level, 
+                           current_name, 
+                           new_name, 
+                           Adm0=NULL, 
+                           Adm1=NULL,
+                           Adm1=NULL,
+                           Adm1=NULL,
+                           Adm1=NULL){
+  
+  if(current_level>new_level){ # move down
+    chl_dt_c[Country== Adm0 & Admin_Level_I== 'Southern' & `Village/Town`== 'Mangochi', adm_level:=  'adm_2']
+    chl_dt_c[Country=='Malawi' & Admin_Level_I== 'Southern' & `Village/Town`== 'Mangochi', Admin_Level_II:=  'Mangochi Town']
+    
+  }
+  
+  
+  
+  
+}
+
 
