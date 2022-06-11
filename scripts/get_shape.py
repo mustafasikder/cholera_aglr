@@ -1,5 +1,6 @@
 
 from math import comb
+from webbrowser import get
 import pandas as pd
 import geopandas as gpd
 import fiona; help(fiona.open)
@@ -109,8 +110,6 @@ zonal_stat2= zonal_stats(combined_shape, "cholera_aglr/results/arc2014_rast.tif"
 pd.DataFrame(zonal_stat2)
 
 
-
-
 arc2014.to_crs(combined_shape.cer)
 
 
@@ -130,17 +129,19 @@ def get_cumulative_rainfall(end_date, lag=5, cumulative_duration=30):
     
     date_of_year_range=dt_range.day_of_year
     
-    for i in date_of_year_range :
+    for i in range(len(date_of_year_range)) :
         print(i)
-        if i ==1:
-            cumulative_raster = arc2014.read(i)
+        if i ==0:
+            cumulative_raster = arc2014.read(st_date+i)
         else:
             cumulative_raster = cumulative_raster + arc2014.read(i)
     
-    
-    return [start, end, st_date, en_date]
+    # return [start, end, st_date, en_date]
+    return [cumulative_raster, start, end, st_date, en_date]
 
 get_cumulative_rainfall(chl_df.loc[1, "end_date"])
 get_cumulative_rainfall(pd.to_datetime("2017, 1, 1"))
 
 end_date= pd.to_datetime("2017, 5, 1")
+
+get_cumulative_rainfall
