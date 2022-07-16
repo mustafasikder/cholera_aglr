@@ -206,10 +206,16 @@ arc2018_rast<- get_arc2_raster(2018, area_box = c(xmin = 10, ymin = -20, xmax = 
 arc2019_rast<- get_arc2_raster(2019, area_box = c(xmin = 10, ymin = -20, xmax = 53, ymax = 17))
 
 # stack all objects and save in disk
-arc201_2019_stack<- writeRaster(raster::stack(arc2014_rast, arc2015_rast, arc2016_rast, 
+arc2014_2019_stack<- writeRaster(raster::stack(arc2014_rast, arc2015_rast, arc2016_rast, 
                                   arc2017_rast, arc2018_rast, arc2019_rast), 
-                                filename="results/arc201_2019_stack.tif", 
+                                filename="results/arc2014_2019_stack.tif", 
                                 overwrite=TRUE)
+arc2015_2019_stack<- writeRaster(raster::stack(arc2015_rast, arc2016_rast, 
+                                               arc2017_rast, arc2018_rast, arc2019_rast), 
+                                 filename="results/arc2015_2019_stack.tif", 
+                                 overwrite=TRUE)
+
+
 
 writeRaster(arc2014_rast, 'results/arc2014_rast.tif')
 writeRaster(arc2015_rast, 'results/arc2015_rast.tif')
